@@ -1,0 +1,126 @@
+<!--
+@license
+Copyright (c) 2016 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../bower_components/polymer/polymer-element.html">
+<link rel="import" href="../bower_components/paper-card/paper-card.html">
+<link rel="import" href="../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../bower_components/paper-input/paper-input.html">
+<link rel="import" href="../bower_components/paper-item/paper-icon-item.html">
+<link rel="import" href="../bower_components/paper-item/paper-item-body.html">
+<link rel="import" href="../bower_components/iron-icons/social-icons.html">
+<link rel="import" href="../bower_components/iron-icon/iron-icon.html">
+<link rel="import" href="../bower_components/iron-icons/image-icons.html">
+<link rel="import" href="../bower_components/paper-icon-button/paper-icon-button.html">
+<link rel="import" href="../bower_components/polymerfire/polymerfire.html">
+<link rel="import" href="../bower_components/app-route/app-route.html">
+<link rel="import" href="shared-styles.html">
+
+<dom-module id="team-add">
+  <template>
+    <style include="shared-styles">
+      :host {
+        display: block;
+
+        padding: 10px;
+      }
+    </style>
+
+    <paper-card main>
+      <div class="card-content">
+        <app-route
+            route="{{route}}"
+            pattern="/:key"
+            data="{{subrouteData}}"></app-route>
+        
+        <firebase-auth id="auth" user="{{user}}" provider="google" status-known="{{statusKnown}}">
+        </firebase-auth>
+
+        <firebase-query id="queryTeams" 
+                  path="/users/[[user.uid]]/teams"
+                  data="{{teams}}"
+                  order-by-child="leagueId" 
+                  equal-to="{{subrouteData.key}}">
+        </firebase-query>
+
+        <h1 class="dialog-header"><iron-icon icon="social:people"></iron-icon> New Team Details</h1>
+          <paper-input id="teamName" label="Name" required error-message="Please enter a name."></paper-input>
+          <paper-input id="teamOwner" label="Owner" required error-message="Please enter an owner name."></paper-input>
+          <paper-input id="teamEmail" label="Email" required error-message="Please enter an Email address."></paper-input>
+          <paper-input id="teamPreviousFinish" label="Previous Year Finish" required error-message="Please enter the previous year finish."></paper-input>
+
+          <div class="buttons">
+            <paper-button id="teamCancel" class="custom" autofocus on-tap="teamCancel">Cancel</paper-button>
+            <paper-button id="teamAccept" class="custom done" autofocus on-tap="teamAccept">Done</paper-button>
+          </div>
+      </div>
+    </paper-card>
+  </template>
+
+  <script>
+    class TeamAdd extends Polymer.Element {
+      static get is() { return 'team-add'; }
+
+      static get properties() {
+        return {
+          route: Object,
+          subrouteData: Object
+        };
+      }
+
+      teamAccept() {
+        let validTeamName = this.$.teamName.validate();
+        let validTeamOwner = this.$.teamOwner.validate();
+        let validTeamEmail = this.$.teamEmail.validate();
+        let validTeamPreviousFinish = this.$.teamPreviousFinish.validate();
+
+        if (validTeamName &&
+              validTeamOwner &&
+              validTeamEmail &&
+              validTeamPreviousFinish) {
+
+          let data = {
+            leagueId: this.subrouteData.key,
+            name: this.$.teamName.value,
+            email: this.$.teamEmail.value,
+            owner: this.$.teamOwner.value,
+            previousFinish: this.$.teamPreviousFinish.value
+          }
+
+          this.$.queryTeams.ref.push(data);
+          //console.log(firebase.database());
+
+          this.resetInputs();
+
+          window.history.pushState({}, null, '/league-details/' + this.subrouteData.key);
+          window.dispatchEvent(new CustomEvent('location-changed'));
+        } else {
+          this.resetInputs();
+        }
+      }
+
+      resetInputs() {
+        this.$.teamName.value = null;
+        this.$.teamEmail.value = null;
+        this.$.teamOwner.value = null;
+        this.$.teamPreviousFinish.value = null;
+
+        //this.$.teamName.focus
+      }
+
+      teamCancel() {
+        this.resetInputs();
+
+        window.history.pushState({}, null, '/league-details/' + this.subrouteData.key);
+        window.dispatchEvent(new CustomEvent('location-changed'));
+      }
+    }
+    window.customElements.define(TeamAdd.is, TeamAdd);
+  </script>
+</dom-module>

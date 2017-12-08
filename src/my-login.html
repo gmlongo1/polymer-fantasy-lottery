@@ -1,0 +1,91 @@
+<!--
+@license
+Copyright (c) 2016 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../bower_components/polymer/polymer-element.html">
+<link rel="import" href="../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../bower_components/paper-input/paper-input.html">
+<link rel="import" href="../bower_components/paper-item/paper-icon-item.html">
+<link rel="import" href="../bower_components/paper-menu-button/paper-menu-button.html">
+<link rel="import" href="../bower_components/paper-item/paper-item.html">
+<link rel="import" href="../bower_components/paper-listbox/paper-listbox.html">
+<link rel="import" href="../bower_components/iron-icons/social-icons.html">
+<link rel="import" href="../bower_components/iron-icon/iron-icon.html">
+<link rel="import" href="../bower_components/iron-icons/image-icons.html">
+<link rel="import" href="../bower_components/paper-icon-button/paper-icon-button.html">
+<link rel="import" href="../bower_components/polymerfire/polymerfire.html">
+<link rel="import" href="../bower_components/app-route/app-route.html">
+<link rel="import" href="../bower_components/iron-image/iron-image.html">
+<link rel="import" href="shared-styles.html">
+
+<dom-module id="my-login">
+  <template>
+    <style include="shared-styles">
+      :host {
+        display: block;
+
+        padding: 10px;
+      }
+    </style>
+
+    <firebase-auth id="auth" user="{{user}}" provider="google" status-known="{{statusKnown}}">
+    </firebase-auth>
+
+    <div>
+      <!--paper-icon-button icon="account-circle" on-tap="logout" title="Sign Out" hidden$="[[!user]]">Sign Out</paper-icon-button-->
+      <paper-menu-button id="userMenu" horizontal-align="right">
+        <iron-image slot="dropdown-trigger" src="[[user.photoURL]]" hidden$="[[!user]]" style="width:35px; height:35px; border-radius: 50%; margin-top:5px;" sizing="contain"></iron-image>
+        <paper-listbox slot="dropdown-content">
+          <paper-item on-tap="logout">Sign Out</paper-item>
+        </paper-listbox>
+      </paper-menu-button>
+    </div>
+  </template>
+
+  <script>
+    class MyLogin extends Polymer.Element {
+      static get is() { return 'my-login'; }
+
+      static get properties() {
+        return {
+          user: Object
+        };
+      }
+
+      login() {
+        return this.$.auth.signInWithPopup();
+      }
+
+      logout() {
+        let result = this.$.auth.signOut();
+
+        // shouldn't be needed, but the menu doesn't always seem to close on the page transition
+        this.$.userMenu.opened = false;
+
+        window.history.pushState({}, null, '/league-list');
+        window.dispatchEvent(new CustomEvent('location-changed'));
+
+        return result;
+      }
+
+      handleError(e) {
+        console.log(e);
+      }
+
+      handleLogin(e) {
+        console.log("Logged in");
+      }
+
+      handleLogout() {
+        console.log("Logged out");
+      }
+    }
+    window.customElements.define(MyLogin.is, MyLogin);
+  </script>
+</dom-module>

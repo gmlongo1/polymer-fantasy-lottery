@@ -1,0 +1,151 @@
+<!--
+@license
+Copyright (c) 2016 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../bower_components/polymer/polymer-element.html">
+<link rel="import" href="../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../bower_components/paper-input/paper-input.html">
+<link rel="import" href="../bower_components/paper-item/paper-icon-item.html">
+<link rel="import" href="../bower_components/paper-item/paper-item-body.html">
+<link rel="import" href="../bower_components/paper-fab/paper-fab.html">
+<link rel="import" href="../bower_components/paper-dialog/paper-dialog.html">
+<link rel="import" href="../bower_components/iron-icons/social-icons.html">
+<link rel="import" href="../bower_components/iron-icon/iron-icon.html">
+<link rel="import" href="../bower_components/iron-icons/image-icons.html">
+<link rel="import" href="../bower_components/paper-icon-button/paper-icon-button.html">
+<link rel="import" href="../bower_components/polymerfire/polymerfire.html">
+<link rel="import" href="../bower_components/app-route/app-route.html">
+<link rel="import" href="shared-styles.html">
+
+<dom-module id="generated-order">
+  <template>
+    <style include="shared-styles">
+      :host {
+        display: block;
+
+        padding: 10px;
+      }
+
+      div[role="listbox"] {
+        border: 1px solid #e5e5e5;
+      }
+
+      .avatar {
+        display: inline-block;
+        
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        background: var(--paper-indigo-500);
+        text-align:center;
+        vertical-align: middle;
+      }
+
+      .finish {
+        color: white;
+        display:inline-block;
+        vertical-align: middle;
+        margin-top: 1px;
+      }
+
+      paper-fab {
+        margin: 1px;
+        /*
+        float: right;
+        top: -72px;
+        float: right;
+        margin-top: -68px;
+        */
+        float: right;
+        margin-top: -58px;
+      }
+    </style>
+
+    <div class="card">
+      
+      <app-route
+          route="{{route}}"
+          pattern="/:key"
+          data="{{subrouteData}}"></app-route>
+      
+      <firebase-document
+          path="/root/leagues/{{subrouteData.key}}"
+          data="{{leagueDetails}}">
+      </firebase-document>
+
+      <h1 class="dialog-header"><iron-icon icon="dns"></iron-icon> League Details</h1>
+      
+      <paper-input id="leagueKey" label="Key" value="{{subrouteData.key}}" hidden></paper-input>
+      
+      <p>[[leagueDetails.name]]</p>
+
+      <h2>Generated Draft Order</h2>
+
+      <firebase-query id="queryTeams" 
+                path="/root/teams"
+                data="{{teams}}"
+                order-by-child="leagueId" 
+                equal-to="{{subrouteData.key}}">
+      </firebase-query>
+
+      <div role="listbox">
+        <template is="dom-repeat" items={{teams}} as="team" sort="teamSort" observe="draftOrder">
+          <paper-icon-item on-tap="teamSelected" id="[[team.name]]">
+            <div class="avatar" slot="item-icon"><div class="finish">[[team.draftOrder]]</div></div>
+            <paper-item-body two-line>
+              <div class="leaguename">[[team.name]]</div>
+              <div secondary>[[team.owner]]</div>
+            </paper-item-body>
+          </paper-icon-item>
+        </template>
+      </div>
+
+      <div class="buttons">
+        <paper-button id="generateCancel" class="custom done" autofocus on-tap="generateCancel">Cancel</paper-button>
+        <paper-button id="generateSave" class="custom highlight" raised autofocus on-tap="generateSave">Save</paper-button>
+      </div>
+    </div>
+  </template>
+
+  <script>
+    class GeneratedOrder extends Polymer.Element {
+      static get is() { return 'generated-order'; }
+      
+      static get properties() {
+        return {
+          route: Object,
+          subrouteData: Object
+        };
+      }
+
+      teamSort(a, b) {
+        console.log("here");
+        if (a.draftOrder < b.draftOrder)
+          return -1;
+
+        if (a.draftOrder > b.draftOrder)
+          return 1;
+
+        return 0;
+      }
+
+      generateCancel() {
+        window.history.pushState({}, null, '/league-details/' + this.subrouteData.key);
+        window.dispatchEvent(new CustomEvent('location-changed'));
+      }
+
+      generateSave() {
+        // save generated order
+        // email owners
+      }
+    }
+
+    window.customElements.define(GeneratedOrder.is, GeneratedOrder);
+  </script>
+</dom-module>

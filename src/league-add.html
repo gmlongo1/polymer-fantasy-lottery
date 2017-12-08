@@ -1,0 +1,148 @@
+<!--
+@license
+Copyright (c) 2016 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../bower_components/polymer/polymer-element.html">
+<link rel="import" href="../bower_components/paper-card/paper-card.html">
+<link rel="import" href="../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../bower_components/paper-input/paper-input.html">
+<link rel="import" href="../bower_components/paper-item/paper-icon-item.html">
+<link rel="import" href="../bower_components/paper-item/paper-item-body.html">
+<link rel="import" href="../bower_components/paper-fab/paper-fab.html">
+<link rel="import" href="../bower_components/paper-dialog/paper-dialog.html">
+<link rel="import" href="../bower_components/iron-icons/social-icons.html">
+<link rel="import" href="../bower_components/iron-icon/iron-icon.html">
+<link rel="import" href="../bower_components/iron-icons/image-icons.html">
+<link rel="import" href="../bower_components/paper-icon-button/paper-icon-button.html">
+<link rel="import" href="../bower_components/polymerfire/polymerfire.html">
+<link rel="import" href="../bower_components/app-route/app-route.html">
+<link rel="import" href="shared-styles.html">
+
+<dom-module id="league-add">
+  <template>
+    <style include="shared-styles">
+      :host {
+        display: block;
+
+        padding: 10px;
+      }
+
+      div[role="listbox"] {
+        border: 1px solid #e5e5e5;
+      }
+
+      .avatar {
+        display: inline-block;
+        
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        background: var(--paper-indigo-500);
+        text-align:center;
+        vertical-align: middle;
+      }
+
+      .finish {
+        color: white;
+        display:inline-block;
+        vertical-align: middle;
+        margin-top: 1px;
+      }
+
+      paper-fab {
+        margin: 1px;
+        float: right;
+        margin-top: -58px;
+      }
+    </style>
+
+    <paper-card main>
+      <div class="card-content">
+        
+        <app-route
+            route="{{route}}"
+            pattern="/:key"
+            data="{{subrouteData}}"></app-route>
+        
+        <firebase-auth id="auth" user="{{user}}" provider="google" status-known="{{statusKnown}}">
+        </firebase-auth>
+
+        <firebase-query id="queryLeagues" 
+                    path="/users/[[user.uid]]/leagues"
+                    data="{{leagues}}">
+        </firebase-query>
+
+        <h1 class="dialog-header"><iron-icon icon="dns"></iron-icon> New League Details</h1>
+        
+        <paper-input id="leagueName" label="Name" required error-message="Please enter a name."></paper-input>
+        <paper-input id="leagueOwner" label="Owner" required error-message="Please enter an owner name."></paper-input>
+        <paper-input id="leagueEmail" label="Email" required error-message="Please enter an Email address."></paper-input>
+
+        <div class="buttons">
+          <paper-button id="leagueCancel" class="custom" autofocus on-tap="leagueCancel">Cancel</paper-button>
+          <paper-button id="leagueAccept" class="custom done" autofocus on-tap="leagueAccept">Done</paper-button>
+        </div>
+      </div>
+    </paper-card>
+  </template>
+
+  <script>
+    class LeagueAdd extends Polymer.Element {
+      static get is() { return 'league-add'; }
+      
+      static get properties() {
+        return {
+          route: Object,
+          subrouteData: Object,
+          leagues: Array
+        };
+      }
+      
+      leagueCancel() {
+        window.history.pushState({}, null, '/league-list');
+        window.dispatchEvent(new CustomEvent('location-changed'));
+      }
+
+      leagueAccept() {
+        let validLeagueName = this.$.leagueName.validate();
+        let validLeagueOwner = this.$.leagueOwner.validate();
+        let validLeagueEmail = this.$.leagueEmail.validate();
+
+        if (validLeagueName &&
+              validLeagueOwner &&
+              validLeagueEmail) {
+          let data = {
+            name: this.$.leagueName.value,
+            owner: this.$.leagueOwner.value,
+            email: this.$.leagueEmail.value
+          };
+
+          // add league
+          //console.log("UID", this.user.uid);
+          this.$.queryLeagues.ref.push(data);
+
+          window.history.pushState({}, null, '/league-list');
+          window.dispatchEvent(new CustomEvent('location-changed'));
+        }
+      }
+
+      _getColor() {
+        let brightness = 2;
+        
+        // Six levels of brightness from 0 to 5, 0 being the darkest
+        var rgb = [Math.random() * 256, Math.random() * 256, Math.random() * 256];
+        var mix = [brightness*51, brightness*51, brightness*51]; //51 => 255/5
+        var mixedrgb = [rgb[0] + mix[0], rgb[1] + mix[1], rgb[2] + mix[2]].map(function(x){ return Math.round(x/2.0)})
+        return "rgb(" + mixedrgb.join(",") + ")";
+      }
+    }
+
+    window.customElements.define(LeagueAdd.is, LeagueAdd);
+  </script>
+</dom-module>

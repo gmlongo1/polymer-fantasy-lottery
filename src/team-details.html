@@ -1,0 +1,96 @@
+<!--
+@license
+Copyright (c) 2016 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../bower_components/polymer/polymer-element.html">
+<link rel="import" href="../bower_components/paper-card/paper-card.html">
+<link rel="import" href="../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../bower_components/paper-input/paper-input.html">
+<link rel="import" href="../bower_components/paper-item/paper-icon-item.html">
+<link rel="import" href="../bower_components/paper-item/paper-item-body.html">
+<link rel="import" href="../bower_components/iron-icons/social-icons.html">
+<link rel="import" href="../bower_components/iron-icon/iron-icon.html">
+<link rel="import" href="../bower_components/iron-icons/image-icons.html">
+<link rel="import" href="../bower_components/paper-icon-button/paper-icon-button.html">
+<link rel="import" href="../bower_components/polymerfire/polymerfire.html">
+<link rel="import" href="../bower_components/app-route/app-route.html">
+<link rel="import" href="shared-styles.html">
+
+<dom-module id="team-details">
+  <template>
+    <style include="shared-styles">
+      :host {
+        display: block;
+
+        padding: 10px;
+      }
+    </style>
+
+    <paper-card main>
+      <div class="card-content">
+      
+        <app-route
+            route="{{route}}"
+            pattern="/:key"
+            data="{{subrouteData}}"></app-route>
+
+        <firebase-auth id="auth" user="{{user}}" provider="google" status-known="{{statusKnown}}">
+        </firebase-auth>
+
+        <firebase-document
+            path="/users/[[user.uid]]/teams/{{subrouteData.key}}"
+            data="{{teamDetails}}">
+        </firebase-document>
+
+        <h1 class="dialog-header"><iron-icon icon="social:people"></iron-icon> Team Details</h1>
+        <paper-input id="teamKey" label="Key" value="{{subrouteData.key}}" hidden></paper-input>
+        <paper-input id="teamName" label="Name" value="{{teamDetails.name}}" required error-message="Please enter a name."></paper-input>
+        <paper-input id="teamOwner" label="Owner" value="{{teamDetails.owner}}" required error-message="Please enter an owner name."></paper-input>
+        <paper-input id="teamEmail" label="Email" value="{{teamDetails.email}}" required error-message="Please enter an Email address."></paper-input>
+        <paper-input id="teamPreviousFinish" label="Previous Year Finish" value="{{teamDetails.previousFinish}}" required error-message="Please enter the previous year finish."></paper-input>
+
+        <div class="buttons">
+          <paper-button id="teamAccept" class="custom done" autofocus on-tap="teamAccept">Done</paper-button>
+        </div>
+      </div>
+    </paper-card>
+  </template>
+
+  <script>
+    class TeamDetails extends Polymer.Element {
+      static get is() { return 'team-details'; }
+
+      static get properties() {
+        return {
+          route: Object,
+          subrouteData: Object
+        };
+      }
+
+      connectedCallback() {
+        super.connectedCallback();
+
+        console.log(this.teamDetails);
+      }
+
+      teamAccept() {
+
+        if (this.$.teamName.validate() &&
+              this.$.teamOwner.validate() &&
+              this.$.teamEmail.validate() &&
+              this.$.teamPreviousFinish.validate()) {
+          window.history.pushState({}, null, '/league-details/' + this.teamDetails.leagueId);
+          window.dispatchEvent(new CustomEvent('location-changed'));
+        }
+      }
+    }
+
+    window.customElements.define(TeamDetails.is, TeamDetails);
+  </script>
+</dom-module>

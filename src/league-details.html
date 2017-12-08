@@ -1,0 +1,263 @@
+<!--
+@license
+Copyright (c) 2016 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../bower_components/polymer/polymer-element.html">
+<link rel="import" href="../bower_components/paper-card/paper-card.html">
+<link rel="import" href="../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../bower_components/paper-input/paper-input.html">
+<link rel="import" href="../bower_components/paper-item/paper-icon-item.html">
+<link rel="import" href="../bower_components/paper-item/paper-item-body.html">
+<link rel="import" href="../bower_components/paper-fab/paper-fab.html">
+<link rel="import" href="../bower_components/paper-dialog/paper-dialog.html">
+<link rel="import" href="../bower_components/iron-icons/social-icons.html">
+<link rel="import" href="../bower_components/iron-icon/iron-icon.html">
+<link rel="import" href="../bower_components/iron-icons/image-icons.html">
+<link rel="import" href="../bower_components/paper-icon-button/paper-icon-button.html">
+<link rel="import" href="../bower_components/polymerfire/polymerfire.html">
+<link rel="import" href="../bower_components/app-route/app-route.html">
+<link rel="import" href="shared-styles.html">
+
+<dom-module id="league-details">
+  <template>
+    <style include="shared-styles">
+      :host {
+        display: block;
+
+        padding: 10px;
+      }
+
+      div[role="listbox"] {
+        border: 1px solid #e5e5e5;
+      }
+
+      .delete-item {
+        float: right;
+        --iron-icon-fill-color: #dddddd;
+      }
+
+      .delete-item:hover {
+        float: right;
+        --iron-icon-fill-color: var(--app-primary-color);
+      }
+
+      .avatar {
+        display: inline-block;
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        background: var(--paper-indigo-500);
+        text-align:center;
+        vertical-align: middle;
+      }
+
+      .avatar-text {
+        color: white;
+        display:inline-block;
+        vertical-align: middle;
+        margin-top: 1px;
+      }
+
+      paper-fab {
+        margin: 1px;
+        /*
+        float: right;
+        top: -72px;
+        float: right;
+        margin-top: -68px;
+        */
+        float: right;
+        margin-top: -58px;
+      }
+    </style>
+
+    <paper-card main>
+      <div class="card-content">
+        
+        <app-route
+            route="{{route}}"
+            pattern="/:key"
+            data="{{subrouteData}}"></app-route>
+        
+        <firebase-auth id="auth" user="{{user}}" provider="google" status-known="{{statusKnown}}">
+        </firebase-auth>
+
+        <firebase-document
+            path="/users/[[user.uid]]/leagues/{{subrouteData.key}}"
+            data="{{leagueDetails}}">
+        </firebase-document>
+
+        <h1 class="dialog-header"><iron-icon icon="dns"></iron-icon> League Details</h1>
+        
+        <paper-input id="leagueKey" label="Key" value="{{subrouteData.key}}" hidden></paper-input>
+        <paper-input id="leagueName" label="Name" value="{{leagueDetails.name}}" required error-message="Please enter a name."></paper-input>
+        <paper-input id="leagueOwner" label="Owner" value="{{leagueDetails.owner}}" required error-message="Please enter an owner name."></paper-input>
+        <paper-input id="leagueEmail" label="Email" value="{{leagueDetails.email}}" required error-message="Please enter an Email address."></paper-input>
+
+        <h2>Teams</h2>
+        <paper-fab icon="add" mini title="Add Team" on-tap="teamAdd"></paper-fab>
+
+        <firebase-query id="queryTeams" 
+                  path="/users/[[user.uid]]/teams"
+                  data="{{teams}}"
+                  order-by-child="leagueId" 
+                  equal-to="{{subrouteData.key}}">
+        </firebase-query>
+
+        <div role="listbox">
+          <template is="dom-repeat" items={{teams}} as="team" sort="teamSort">
+            <paper-icon-item on-tap="teamSelected" id="[[team.name]]">
+              <div class="avatar" slot="item-icon"><div class="avatar-text">[[team.previousFinish]]</div></div>
+              <paper-item-body two-line>
+                <div class="leaguename">[[team.name]]</div>
+                <div secondary>[[team.owner]]</div>
+              </paper-item-body>
+              <paper-icon-button icon="delete" title="Delete Team" class="delete-item" on-tap="confirmDeleteTeam"></paper-icon-button>
+            </paper-icon-item>
+          </template>
+        </div>
+
+        <div class="buttons">
+          <paper-button id="leagueAccept" class="custom done" autofocus on-tap="leagueAccept">Done</paper-button>
+          <paper-button id="leagueGenerateOrder" class="custom highlight" raised autofocus on-tap="leagueGenerateOrder">Generate Order</paper-button>
+        </div>
+      </div>
+    </paper-card>
+
+    <paper-dialog id="teamDeleteConfirmDialog" modal>
+      <p><iron-icon icon="delete"></iron-icon> Are you sure you wish to delete this team?</p>
+      <paper-input id="deleteTeamKey" label="Key" hidden></paper-input>
+      <div class="buttons">
+        <paper-button dialog-dismiss>Cancel</paper-button>
+        <paper-button id="teamDeleteAccept" dialog-confirm autofocus on-tap="teamDeleteAccept">Confirm</paper-button>
+      </div>
+    </paper-dialog>
+  </template>
+
+  <script>
+    class LeagueDetails extends Polymer.Element {
+      static get is() { return 'league-details'; }
+      
+      static get properties() {
+        return {
+          route: Object,
+          subrouteData: Object
+        };
+      }
+      
+      leagueCancel() {
+        window.history.pushState({}, null, '/league-list');
+        window.dispatchEvent(new CustomEvent('location-changed'));
+      }
+
+      leagueAccept() {
+        window.history.pushState({}, null, '/league-list');
+        window.dispatchEvent(new CustomEvent('location-changed'));
+      }
+
+      teamSelected(e) {
+        let team = e.model.team;
+        console.log(team);
+        
+        window.history.pushState({}, null, '/team-details/' + team.$key);
+        window.dispatchEvent(new CustomEvent('location-changed'));
+      }
+
+      teamAdd() {
+        window.history.pushState({}, null, '/team-add/' + this.subrouteData.key);
+        window.dispatchEvent(new CustomEvent('location-changed'));
+      }
+
+      teamSort(a, b) {
+        if (a.previousFinish < b.previousFinish)
+          return -1;
+
+        if (a.previousFinish > b.previousFinish)
+          return 1;
+
+        return 0;
+      }
+
+      confirmDeleteTeam(e) {
+        // stop propagation so row tap event is not fired also
+        e.stopPropagation();
+
+        // set the key of the team to be deleted
+        let team = e.model.team;
+        this.$.deleteTeamKey.value = team.$key;
+
+        var body = document.querySelector('body');
+        Polymer.dom(body).appendChild(this.$.teamDeleteConfirmDialog);
+        this.$.teamDeleteConfirmDialog.open();
+      }
+
+      teamDeleteAccept() {
+        let deleteTeamKey = this.$.deleteTeamKey.value;
+        this.$.queryTeams.ref.child(deleteTeamKey).remove();
+      }
+
+      leagueGenerateOrder() {
+        console.log(this.teams);
+
+        let pool = [];
+
+        for (var i = 0; i < this.teams.length; i++) {
+          let team = this.teams[i];
+
+          // should never happen
+          if (team.previousFinish == "0" || team.previousFinish == "")
+            team.previousFinish = "1";
+
+          // the number of entries in lottery pool is determined by taking the square of the previous finish
+          let num = team.previousFinish * team.previousFinish;
+          for (var j = 0; j < num; j++) {
+            pool.push(team);
+          }
+        }
+
+        //console.log("pool", pool);
+
+        let counter = 1;
+        while(pool.length > 0) {
+          let index = this.getRandomInt(0, pool.length);
+          let selectedTeam = pool[index];
+
+          selectedTeam.draftOrder = counter++;
+          let data = {
+            draftOrder: selectedTeam.draftOrder
+          }
+          firebase.database().ref('/root/teams/' + selectedTeam.$key).update(data);
+
+          this.removeAllItemsForTeam(pool, selectedTeam);
+        }
+
+        //console.log("order", this.teams);
+
+        window.history.pushState({}, null, '/generated-order/' + this.subrouteData.key);
+        window.dispatchEvent(new CustomEvent('location-changed'));
+      }
+
+      getRandomInt(min, max) {
+        min = Math.ceil(min);
+        max = Math.floor(max);
+        return Math.floor(Math.random() * (max - min)) + min; //The maximum is exclusive and the minimum is inclusive
+      }
+
+      removeAllItemsForTeam(pool, team) {
+        for (var k = pool.length - 1; k >= 0; k--) {
+            if (pool[k] == team) { 
+                pool.splice(k, 1);
+            }
+        }
+      }
+    }
+
+    window.customElements.define(LeagueDetails.is, LeagueDetails);
+  </script>
+</dom-module>
